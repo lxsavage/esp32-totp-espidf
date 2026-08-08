@@ -80,4 +80,5 @@ Desktop.ini
 # Keep code in utilities, not binaries
 utilities/*
 !utilities/*.c
+!utilities/makefile
 !utilities/helpers/

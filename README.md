@@ -1,9 +1,9 @@
-# ESP32 TOTP (ESPRESSIF-IDF port)
-
 > [!WARNING]
 > This is an in-progress port of [ESP32 TOTP](https://github.com/lxsavage/esp32-totp)
 > to Espressif IDF. Expect broken things until this is completed, and use that
 > version instead if you want a (mostly) error-free experience instead.
+
+# ESP32 TOTP (ESPRESSIF-IDF port)
 
 An ESP32-based TOTP storing the private key in flash storage and getting time
 synchronization information from the internet using NTP. This is based on my
@@ -13,8 +13,8 @@ other TOTP setup using Arduino, found here:
 ## Setup
 
 > [!NOTE]
-> This project was built on PlatformIO, and was tested using an Expressif ESP32
-> dev board. While other compatible configurations should work, they are
+> This project was built with Espressif-IDF, on an ESP32 dev board.
+> While other compatible configurations should work, they are
 > currently untested due to me not having other hardware.
 
 The setup of this system is as follows:
@@ -24,13 +24,16 @@ The setup of this system is as follows:
 2. Upload the program to the ESP32 and use [`load all`](#load) to write new
    credentials to memory
 
+> [!WARNING]
+> The memory layout in this version is different than the ESP-Arduino version,
+> so you will have to re-flash the key and WiFi credentials to memory with
+> [`load all`](#load).
+
 ### Hardware Connections
 
 > [!NOTE]
-> If following along from
-> [lxsavage/arduino-totp](https://github.com/lxsavage/arduino-totp), these
-> pinouts are different due to moving pins around to compensate for reserved
-> pins during upload on the ESP32.
+> This was written with a non-I2C wired LCD 1602, and does not currently
+> support I2C-configured displays.
 
 ```plaintext
 LCD 1602 (for display)
@@ -76,7 +79,7 @@ Requirements:
 - C compiler (`cc` in path)
 - Make (`make` in path)
 
-Build with `make utilities` at the root.
+Build with `make utilities` in `utilities/`.
 
 #### Note on Device Name Used in Utilities
 
@@ -116,6 +119,9 @@ Load new secrets and/or wifi credentials. There are 3 subcommands with this,
 
 #### `clean`
 
-Remove the secret/credential loaded from `load` securely in order to safely
+~~Remove the secret/credential loaded from `load` securely in order to safely
 reuse the ESP32 in other projects without worrying about leaking this
-information. To invoke this utility, just use `./utilities/load <devicename>`.
+information. To invoke this utility, just use `./utilities/load <devicename>`.~~
+
+**Unlike the ESP-Arduino version, this doesn't have a clean utility. Using
+`idf.py erase-flash` achieves the same function.**
