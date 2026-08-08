@@ -4,5 +4,5 @@ idf_component_register(
     SRCS "rtc.c"
     INCLUDE_DIRS "."
     REQUIRES common
-    PRIV_REQUIRES esp_timer esp_wifi storage
+    PRIV_REQUIRES freertos esp_wifi esp_event esp_netif lwip storage
 )

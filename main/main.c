@@ -138,6 +138,8 @@ void app_main(void)
         esp_deep_sleep_start();
     }
 
+    printf("UNIX time: %lu\n", rtc_get());
+
     // Early return for no label; don't need to worry about reading a label!
     if (decoded_key.label_len == 0)
     {
