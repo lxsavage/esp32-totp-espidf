@@ -13,7 +13,9 @@
 #include "constants.h"
 
 #include "display.h"
+#include "rtc.h"
 #include "storage.h"
+#include "totp.h"
 
 static struct storage_OTPCode decoded_key;
 static struct storage_WiFiDetails wifi;
@@ -98,7 +100,7 @@ void app_main(void)
 
     serial_msg("TIMESYNC", NULL, wifi.ssid);
 
-    // totp::init();
+    totp_init();
 
     display_clear();
     display_set_cursor(0, 0);
@@ -119,9 +121,9 @@ void app_main(void)
     // Delay at least LABEL_READ_TIME, but skip the delay if it took longer than
     // that to do a RTC sync
     int64_t sync_start_ts = esp_timer_get_time() / 1000;
-    // bool last_sync_successful = rtc::sync(&network, true);
+    bool last_sync_successful = rtc_sync(&wifi, true);
 
-    if (true) // !rtc::ready() && !last_sync_successful)
+    if (!rtc_ready() && !last_sync_successful)
     {
         // rtc::sync and rtc::ready both returning false indicates connection
         // failure

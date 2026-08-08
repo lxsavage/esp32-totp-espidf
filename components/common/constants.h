@@ -33,4 +33,7 @@
 #define TOTP_KEY_MAX 128
 #define TOTP_POLL_NS 1000000 // 1 second
 
+// Debug helper
+#include <debug.h>
+
 #endif
