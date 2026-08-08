@@ -1,0 +1,15 @@
+{
+  "idf.currentSetup": "/Users/logansavage/.espressif/v6.0.2/esp-idf",
+  "idf.customExtraVars": {},
+  "idf.flashType": "UART",
+  "idf.port": "/dev/tty.usbserial-0001",
+  "cmake.configureEnvironment": {
+    "IDF_PATH": "/Users/logansavage/.espressif/v6.0.2/esp-idf"
+  },
+  "clangd.path": "/Users/logansavage/.espressif/tools/esp-clang/esp-20.1.1_20250829/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/Users/logansavage/espproj/totp/build"
+  ]
+}
