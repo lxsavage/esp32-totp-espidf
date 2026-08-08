@@ -15,6 +15,9 @@
 #include "display.h"
 #include "storage.h"
 
+static struct storage_OTPCode decoded_key;
+static struct storage_WiFiDetails wifi;
+
 void serial_msg(const char* command, const char* data, const char* rem)
 {
     printf("%s", command);
@@ -50,9 +53,9 @@ void app_main(void)
     else
         serial_msg("ENTER", "normal", NULL);
 
-    // storage::init();
-    // storage::load_wifi(network);
-    // storage::load_privatekey(decoded_key);
+    storage_init();
+    storage_load_wifi(&wifi);
+    storage_load_privatekey(&decoded_key);
 
     serial_msg("TIMESYNC", NULL, "wifi_ap_name");
 
