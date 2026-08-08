@@ -1,0 +1,21 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 6.0.2
+  jef-sure/hd44780:
+    component_hash: 852a5a07f5e8a923543e7ac0130e6f24e16e351e89ade29952003bd67e74e9e7
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.0.1
+direct_dependencies:
+- idf
+- jef-sure/hd44780
+manifest_hash: 07c83a60319e7e92cd3b9fe202b97e3e278abf8929768f515ad7796cfd58a666
+target: esp32
+version: 3.0.0

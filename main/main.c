@@ -13,10 +13,10 @@
 #include "constants.h"
 
 #include "display.h"
-#include "storage.h"
+// #include "storage.h"
 
-static struct storage_OTPCode decoded_key;
-static struct storage_WiFiDetails wifi;
+// static struct storage_OTPCode decoded_key;
+// static struct storage_WiFiDetails wifi;
 
 void serial_msg(const char* command, const char* data, const char* rem)
 {
@@ -53,9 +53,9 @@ void app_main(void)
     else
         serial_msg("ENTER", "normal", NULL);
 
-    storage_init();
-    storage_load_wifi(&wifi);
-    storage_load_privatekey(&decoded_key);
+    // storage_init();
+    // storage_load_wifi(&wifi);
+    // storage_load_privatekey(&decoded_key);
 
     serial_msg("TIMESYNC", NULL, "wifi_ap_name");
 
@@ -64,25 +64,25 @@ void app_main(void)
     display_clear();
     display_set_cursor(0, 0);
 
-    if (true) // decoded_key.label_len == 0)
-    {
-        display_write("Waiting for");
-        display_set_cursor(0, 1);
-        display_write("NTP sync...");
-    }
-    else
-    {
-        display_write("TOTP for");
-        display_set_cursor(0, 1);
-        // display_write(decoded_key.label);
-    }
+    // if (decoded_key.label_len == 0)
+    // {
+    display_write("Waiting for");
+    display_set_cursor(0, 1);
+    display_write("NTP sync...");
+    // }
+    // else
+    // {
+    // display_write("TOTP for");
+    // display_set_cursor(0, 1);
+    // display_write(decoded_key.label);
+    // }
 
     // Delay at least LABEL_READ_TIME, but skip the delay if it took longer than
     // that to do a RTC sync
     int64_t sync_start_ts = esp_timer_get_time() / 1000;
     // bool last_sync_successful = rtc::sync(&network, true);
 
-    if (false) // !rtc::ready() && !last_sync_successful)
+    if (true) // !rtc::ready() && !last_sync_successful)
     {
         // rtc::sync and rtc::ready both returning false indicates connection
         // failure
