@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 
+// Uncomment to allow for debug aborts to happen as well as additional logging
+#define DEBUG
+
+// Uncomment to directly bypass load mode and load credentials into storage;
+// requires DEBUG to be set!
+// #define LOAD_TEST
+
 // Pinout for LCD to display codes/status messages
 #define RS 13
 #define ENABLE 14

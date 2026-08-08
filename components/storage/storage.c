@@ -2,68 +2,98 @@
 
 #include <nvs_flash.h>
 
+// This generally shouldn't change, so it's being left here instead of
+// constants.h
 #define STORAGE_NVS_PART_NAME "nvs"
 
 static bool initialized = false;
 static nvs_handle_t handle;
-void storage_init()
+
+_Bool storage_init()
 {
     if (initialized)
-        return;
+        return false;
 
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES)
     {
         // Reinit flash if full
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ESP_ERROR_CHECK(nvs_flash_init());
+        err = nvs_flash_erase();
+#ifdef DEBUG
+        ESP_ERROR_CHECK(err);
+#endif
+        err = nvs_flash_init();
+#ifdef DEBUG
+        ESP_ERROR_CHECK(err);
+#endif
     }
     else if (err != ESP_OK)
     {
-        // Handle the error as normal otherwise
+#ifdef DEBUG
         ESP_ERROR_CHECK(err);
+#endif
+        return false;
     }
 
     // Use PURGE so that old private data isn't recoverable
-    ESP_ERROR_CHECK(
-        nvs_open(STORAGE_NVS_PART_NAME, NVS_READWRITE_PURGE, &handle));
+    err = nvs_open(STORAGE_NVS_PART_NAME, NVS_READWRITE_PURGE, &handle);
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
 
-    initialized = true;
+    initialized = err == ESP_OK;
+    return initialized;
 }
 
-void storage_load_privatekey(struct storage_OTPCode* out)
+_Bool storage_load_privatekey(struct storage_OTPCode* out)
 {
-    size_t* returned_size = NULL;
-
-    ESP_ERROR_CHECK(nvs_get_blob(handle, "secret", out, returned_size));
-    if (*returned_size != sizeof(*out))
-    {
-        // TODO - handle
-    }
+    size_t sz = sizeof(struct storage_OTPCode);
+    esp_err_t err = nvs_get_blob(handle, "secret", out, &sz);
+    if (err == ESP_ERR_NVS_NOT_FOUND)
+        return false;
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
+    return err == ESP_OK && sz != sizeof(struct storage_OTPCode);
 }
 
-void storage_load_wifi(struct storage_WiFiDetails* out)
+_Bool storage_load_wifi(struct storage_WiFiDetails* out)
 {
-    size_t* returned_size = NULL;
-    ESP_ERROR_CHECK(nvs_get_blob(handle, "secret", out, returned_size));
-    if (*returned_size != sizeof(*out))
-    {
-        // TODO - handle
-    }
+    size_t sz = sizeof(struct storage_WiFiDetails);
+    esp_err_t err = nvs_get_blob(handle, "wifi", out, &sz);
+    if (err == ESP_ERR_NVS_NOT_FOUND)
+        return false;
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
+    return err == ESP_OK && sz != sizeof(struct storage_WiFiDetails);
 }
 
-void storage_write_secret(struct storage_OTPCode* in)
+_Bool storage_write_secret(struct storage_OTPCode* in)
 {
-    ESP_ERROR_CHECK(nvs_set_blob(handle, "secret", in, sizeof(*in)));
+    esp_err_t err =
+        nvs_set_blob(handle, "secret", in, sizeof(struct storage_OTPCode));
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
+    return err == ESP_OK;
 }
 
-void storage_write_wifi(struct storage_WiFiDetails* in)
+_Bool storage_write_wifi(struct storage_WiFiDetails* in)
 {
-    ESP_ERROR_CHECK(nvs_set_blob(handle, "wifi", in, sizeof(*in)));
+    esp_err_t err =
+        nvs_set_blob(handle, "wifi", in, sizeof(struct storage_WiFiDetails));
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
+    return err == ESP_OK;
 }
 
 _Bool storage_commit_writes()
 {
-    ESP_ERROR_CHECK(nvs_commit(handle));
-    return true;
+    esp_err_t err = nvs_commit(handle);
+#ifdef DEBUG
+    ESP_ERROR_CHECK(err);
+#endif
+    return err == ESP_OK;
 }

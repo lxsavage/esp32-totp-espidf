@@ -21,19 +21,19 @@ struct storage_WiFiDetails
 };
 
 // Initialize storage for reading/writing
-void storage_init();
+_Bool storage_init();
 
 // Get the TOTP secret from storage
-void storage_load_privatekey(struct storage_OTPCode* out);
+_Bool storage_load_privatekey(struct storage_OTPCode* out);
 
 // Get the WiFi credentials from storage
-void storage_load_wifi(struct storage_WiFiDetails* out);
+_Bool storage_load_wifi(struct storage_WiFiDetails* out);
 
 // Write a new secret to storage
-void storage_write_secret(struct storage_OTPCode* in);
+_Bool storage_write_secret(struct storage_OTPCode* in);
 
 // Write new WiFi credentials to storage
-void storage_write_wifi(struct storage_WiFiDetails* in);
+_Bool storage_write_wifi(struct storage_WiFiDetails* in);
 
 // Apply any pending write calls to storage
 _Bool storage_commit_writes();

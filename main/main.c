@@ -13,10 +13,38 @@
 #include "constants.h"
 
 #include "display.h"
-// #include "storage.h"
+#include "storage.h"
 
-// static struct storage_OTPCode decoded_key;
-// static struct storage_WiFiDetails wifi;
+static struct storage_OTPCode decoded_key;
+static struct storage_WiFiDetails wifi;
+
+#ifdef LOAD_TEST
+static struct storage_OTPCode code = {
+    .label_len = 13,
+    .key_len = 13,
+    .label = "Hello, world!",
+    .key = {'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!'}};
+
+// TODO - fill this out
+static struct storage_WiFiDetails creds = {.ppk = "", .ssid = ""};
+
+void test_harness()
+{
+    storage_init();
+    storage_write_secret(&code);
+    storage_write_wifi(&creds);
+    if (!storage_commit_writes())
+        printf("failed to commit writes\n");
+    else
+    {
+        storage_load_privatekey(&decoded_key);
+        storage_load_wifi(&wifi);
+
+        printf("Secret len: %u\n", decoded_key.key_len);
+        printf("WiFi SSID: %s\n", wifi.ssid);
+    }
+}
+#endif
 
 void serial_msg(const char* command, const char* data, const char* rem)
 {
@@ -33,6 +61,17 @@ void serial_msg(const char* command, const char* data, const char* rem)
 
 void app_main(void)
 {
+#ifdef LOAD_TEST
+#ifdef DEBUG
+    test_harness();
+    printf("Wrote test credentials; stalling\n");
+
+    for (;;)
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    return;
+#endif
+#endif
+
     serial_msg("BEGIN", NULL, NULL);
 
     display_init(RS, ENABLE, D4, D5, D6, D7);
@@ -53,29 +92,29 @@ void app_main(void)
     else
         serial_msg("ENTER", "normal", NULL);
 
-    // storage_init();
-    // storage_load_wifi(&wifi);
-    // storage_load_privatekey(&decoded_key);
+    storage_init();
+    storage_load_wifi(&wifi);
+    storage_load_privatekey(&decoded_key);
 
-    serial_msg("TIMESYNC", NULL, "wifi_ap_name");
+    serial_msg("TIMESYNC", NULL, wifi.ssid);
 
     // totp::init();
 
     display_clear();
     display_set_cursor(0, 0);
 
-    // if (decoded_key.label_len == 0)
-    // {
-    display_write("Waiting for");
-    display_set_cursor(0, 1);
-    display_write("NTP sync...");
-    // }
-    // else
-    // {
-    // display_write("TOTP for");
-    // display_set_cursor(0, 1);
-    // display_write(decoded_key.label);
-    // }
+    if (decoded_key.label_len == 0)
+    {
+        display_write("Waiting for");
+        display_set_cursor(0, 1);
+        display_write("NTP sync...");
+    }
+    else
+    {
+        display_write("TOTP for");
+        display_set_cursor(0, 1);
+        display_write(decoded_key.label);
+    }
 
     // Delay at least LABEL_READ_TIME, but skip the delay if it took longer than
     // that to do a RTC sync
@@ -98,7 +137,7 @@ void app_main(void)
     }
 
     // Early return for no label; don't need to worry about reading a label!
-    if (true) // decoded_key.label_len == 0)
+    if (decoded_key.label_len == 0)
     {
         display_clear();
         display_set_cursor(0, 1);
