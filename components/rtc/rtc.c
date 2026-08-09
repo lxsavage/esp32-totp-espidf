@@ -30,6 +30,9 @@ static bool s_event_loop_inited = false;
 static bool s_netif_inited = false;
 static bool s_time_ready = false;
 
+// Keep track of when last synchronized, so that syncs can be debounced
+static uint64_t last_sync_ns = 0;
+
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                int32_t event_id, void* event_data)
 {
@@ -48,18 +51,18 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-static void copy_ensure(char* dst, size_t dstsz, const char* src)
+static void copy_ensure(char* to, size_t to_size, const char* from)
 {
-    if (!dst || dstsz == 0)
+    if (!to || to_size == 0)
         return;
-    if (!src)
+    if (!from)
     {
-        dst[0] = '\0';
+        to[0] = '\0';
         return;
     }
-    size_t n = strnlen(src, dstsz - 1);
-    memcpy(dst, src, n);
-    dst[n] = '\0';
+    size_t n = strnlen(from, to_size - 1);
+    memcpy(to, from, n);
+    to[n] = '\0';
 }
 
 static bool ensure_bases(bool log)
@@ -240,6 +243,13 @@ static bool sntp_sync_once(bool log)
 
 _Bool rtc_sync(struct storage_WiFiDetails* wifi, _Bool print_errors)
 {
+    // Only resync once a day
+    time_t now = 0;
+    time(&now);
+    if (s_time_ready &&
+        now - last_sync_ns < 86400000000000) // number of nanoseconds in a day
+        return true;
+
     // Not thread-safe by contract
     if (!wifi || wifi->ssid[0] == '\0')
     {
@@ -257,6 +267,13 @@ _Bool rtc_sync(struct storage_WiFiDetails* wifi, _Bool print_errors)
 
     // Mark ready if system time looks sane
     s_time_ready = ok || time_is_valid();
+
+    if (s_time_ready)
+    {
+        time(&now);
+        last_sync_ns = (uint64_t)now;
+    }
+
     return s_time_ready;
 }
 

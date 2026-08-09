@@ -31,7 +31,7 @@
 // Other constants
 #define BAUD_RATE 115200
 #define TOTP_KEY_MAX 128
-#define TOTP_POLL_NS 1000000 // 1 second
+#define TOTP_POLL_mS 1000000 // 1 second in microseconds
 
 // Debug helper
 #include <debug.h>

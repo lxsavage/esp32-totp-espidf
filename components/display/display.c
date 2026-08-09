@@ -28,6 +28,7 @@ _Bool display_begin(int cols, int rows)
     else
         return false;
 
+    lcd_set_cursor(lcd, 0, 0);
     return true;
 }
 
@@ -37,4 +38,4 @@ void display_clear() { lcd_clear_screen(lcd); }
 
 void display_write(const char* content) { lcd_write_str(lcd, content); }
 
-void display_write_byte(char byteval) { lcd_write_char(lcd, byteval); }
+void display_write_byte(uint8_t byteval) { lcd_write_char(lcd, byteval); }

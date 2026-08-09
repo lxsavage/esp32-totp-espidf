@@ -61,6 +61,40 @@ void serial_msg(const char* command, const char* data, const char* rem)
         printf("\n");
 }
 
+void totp_mode(void* _)
+{
+    esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
+    for (;;)
+    {
+        unsigned long now = rtc_get();
+        static char code_buf[7];
+        if (!totp_generate(decoded_key.key, decoded_key.key_len, now, code_buf))
+        {
+            serial_msg("FAIL", "totp_gen", NULL);
+            esp_light_sleep_start();
+            return;
+        }
+
+        display_set_cursor(0, 0);
+        for (int i = 0; i < 6; i++)
+        {
+            if (i == 3)
+                display_write_byte(' ');
+            display_write_byte(code_buf[i]);
+        }
+
+        static char exp_buf[3];
+        snprintf(exp_buf, 3, "%02lu", 30 - (now % 30));
+        display_set_cursor(11, 1);
+        display_write(exp_buf);
+
+        if (rtc_sync(&wifi, false))
+            serial_msg("TIMESYNC", NULL, wifi.ssid);
+
+        esp_light_sleep_start();
+    }
+}
+
 void app_main(void)
 {
 #ifdef LOAD_TEST
@@ -79,7 +113,7 @@ void app_main(void)
     display_init(RS, ENABLE, D4, D5, D6, D7);
     display_begin(16, 2);
 
-    esp_sleep_enable_timer_wakeup(TOTP_POLL_NS);
+    esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
 
     gpio_set_direction(LOAD_BTN, GPIO_MODE_INPUT);
     gpio_set_pull_mode(LOAD_BTN, GPIO_PULLDOWN_ONLY);
@@ -138,25 +172,18 @@ void app_main(void)
         esp_deep_sleep_start();
     }
 
-    printf("UNIX time: %lu\n", rtc_get());
-
-    // Early return for no label; don't need to worry about reading a label!
-    if (decoded_key.label_len == 0)
+    if (decoded_key.label_len != 0)
     {
-        display_clear();
-        display_set_cursor(0, 1);
-        display_write("Expires in   s");
-        vTaskDelay(pdMS_TO_TICKS(100));
-        return;
+        int64_t sync_end_ts = esp_timer_get_time() / 1000;
+        if (sync_end_ts - sync_start_ts < LABEL_READ_TIME - 100)
+            vTaskDelay(pdMS_TO_TICKS(LABEL_READ_TIME - 100 -
+                                     (sync_end_ts - sync_start_ts)));
     }
-
-    int64_t sync_end_ts = esp_timer_get_time() / 1000;
-    if (sync_end_ts - sync_start_ts < LABEL_READ_TIME - 100)
-        vTaskDelay(pdMS_TO_TICKS(LABEL_READ_TIME - 100 -
-                                 (sync_end_ts - sync_start_ts)));
 
     display_clear();
     display_set_cursor(0, 1);
     display_write("Expires in   s");
     vTaskDelay(pdMS_TO_TICKS(100));
+
+    xTaskCreate(totp_mode, "totp_generator", 8192, NULL, 0, NULL);
 }
