@@ -17,49 +17,182 @@
 #include "storage.h"
 #include "totp.h"
 
+#include "helpers.h"
+
 static struct storage_OTPCode decoded_key;
 static struct storage_WiFiDetails wifi;
 
-#ifdef LOAD_TEST
-static struct storage_OTPCode code = {
-    .label_len = 13,
-    .key_len = 13,
-    .label = "Hello, world!",
-    .key = {'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!'}};
-
-// TODO - fill this out
-static struct storage_WiFiDetails creds = {.ppk = "", .ssid = ""};
-
-void test_harness()
+// Not yet implemented; will uncomment later
+#if FALSE
+void load_mode()
 {
-    storage_init();
-    storage_write_secret(&code);
-    storage_write_wifi(&creds);
-    if (!storage_commit_writes())
-        printf("failed to commit writes\n");
-    else
-    {
-        storage_load_privatekey(&decoded_key);
-        storage_load_wifi(&wifi);
+    struct storage::OTPCode code;
+    struct storage::WiFiDetails network = {.ppk = {'\0'}, .ssid = {'\0'}};
 
-        printf("Secret len: %u\n", decoded_key.key_len);
-        printf("WiFi SSID: %s\n", wifi.ssid);
+    bool save_key = false;
+
+    storage::init();
+
+    display::clear();
+    display::set_cursor(0, 0);
+    display::write("LOAD MODE    ...");
+    display::set_cursor(0, 1);
+    display::write("Reset to exit");
+
+    // LOAD label //
+
+    Serial.println("READY label");
+    int64_t debounce_helper = esp_timer_get_time();
+    while (!Serial.available())
+    {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
+    code.label_len = Serial.readBytesUntil('\n', code.label, 255);
+    code.label[code.label_len] = '\0';
+
+    Serial.print("READ label ");
+    Serial.println((char*)code.label);
+
+    // LOAD key length //
+
+    Serial.println("READY key_len");
+    while (!Serial.available())
+    {
+        vTaskDelay(pdMS_TO_TICKS(10));
+        if (esp_timer_get_time() - debounce_helper > 2000000 &&
+            digitalRead(LOAD_BTN) == HIGH)
+        {
+            Serial.println("SKIP label");
+            Serial.println("SKIP key");
+            goto load_mode_network;
+        }
+    }
+
+    size_t key_len;
+    {
+        char key_len_chars[4];
+        size_t key_len_chars_len =
+            Serial.readBytesUntil('\n', key_len_chars, 4);
+        key_len_chars[key_len_chars_len] = '\0';
+
+        Serial.print("READ key_len ");
+        Serial.println(key_len_chars);
+
+        key_len = atoi(key_len_chars);
+
+        if (key_len < 0)
+        {
+            Serial.println("FAIL key_len");
+            display::clear();
+            display::set_cursor(0, 0);
+            display::write("ERROR");
+            display::set_cursor(0, 1);
+            display::write("Key not saved");
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            return;
+        }
+        else if (key_len == 0)
+        {
+            Serial.println("SKIP key");
+            goto load_mode_network;
+        }
+    }
+
+    // LOAD key //
+
+    Serial.println("READY key");
+    while (!Serial.available())
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+    {
+        code.key_len = Serial.readBytes(code.key, key_len);
+
+        // Read additional byte to remove/discard newline from buffer
+        Serial.read();
+
+        Serial.print("READ key ");
+        for (size_t i = 0; i < code.key_len; i++)
+        {
+            Serial.print(code.key[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+    }
+
+    save_key = true;
+    storage::write_secret(code);
+
+load_mode_network:
+    // LOAD ssid //
+
+    Serial.println("READY ssid");
+    while (!Serial.available())
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+    {
+        size_t ssid_len = Serial.readBytesUntil('\n', network.ssid, 32);
+        network.ppk[ssid_len] = '\0';
+        Serial.print("READ ssid ");
+        Serial.println(network.ssid);
+
+        // Skip wifi if no SSID is provided
+        if (ssid_len == 0)
+        {
+            if (save_key && !storage::commit_writes())
+            {
+                Serial.println("FAIL key");
+                display::clear();
+                display::set_cursor(0, 0);
+                display::write("ERROR");
+                display::set_cursor(0, 1);
+                display::write("Data not saved");
+                vTaskDelay(pdMS_TO_TICKS(2000));
+            }
+            return;
+        }
+    }
+
+    // LOAD ppk //
+
+    Serial.println("READY ppk");
+    while (!Serial.available())
+        vTaskDelay(pdMS_TO_TICKS(10));
+
+    {
+        size_t ppk_len = Serial.readBytesUntil('\n', network.ppk, 64);
+        network.ppk[ppk_len] = '\0';
+
+        Serial.print("READ ppk ");
+        Serial.println(network.ppk);
+    }
+
+    // SAVE //
+
+    if (save_key)
+    {
+        Serial.println("SAVE key");
+    }
+
+    storage::write_wifi(network);
+    Serial.println("SAVE ssid");
+    Serial.println("SAVE ppk");
+
+    if (!storage::commit_writes())
+    {
+        Serial.println("FAIL key");
+        Serial.println("FAIL ssid");
+        Serial.println("FAIL ppk");
+        display::clear();
+        display::set_cursor(0, 0);
+        display::write("ERROR");
+        display::set_cursor(0, 1);
+        display::write("Data not saved");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        return;
     }
 }
 #endif
-
-void serial_msg(const char* command, const char* data, const char* rem)
-{
-    printf("%s", command);
-
-    if (data != NULL)
-        printf(" %s", data);
-
-    if (rem != NULL)
-        printf(" ;%s\n", rem);
-    else
-        printf("\n");
-}
 
 void totp_mode(void* _)
 {

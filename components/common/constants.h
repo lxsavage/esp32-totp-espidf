@@ -34,6 +34,10 @@
 #define TOTP_POLL_mS 1000000 // 1 second in microseconds
 
 // Debug helper
-#include <debug.h>
+#ifdef DEBUG
+#define ERR_CHECK(x) ESP_ERROR_CHECK(x)
+#else
+#define ERR_CHECK(x)
+#endif
 
 #endif
