@@ -3,5 +3,5 @@ cmake_minimum_required(VERSION 3.16.0)
 idf_component_register(
     SRCS "display.c"
     INCLUDE_DIRS "."
-    REQUIRES common
+    REQUIRES freertos common
 )

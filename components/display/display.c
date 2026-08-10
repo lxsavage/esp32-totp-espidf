@@ -1,5 +1,9 @@
 #include "display.h"
 
+#include <freertos/FreeRTOS.h>
+
+#include <freertos/task.h>
+
 #include "constants.h"
 
 #include "hd44780.h"
@@ -28,7 +32,9 @@ _Bool display_begin(int cols, int rows)
     else
         return false;
 
-    lcd_set_cursor(lcd, 0, 0);
+    // Give the hardware some time to catch up to the commands for initializing
+    // it
+    vTaskDelay(pdMS_TO_TICKS(10));
     return true;
 }
 

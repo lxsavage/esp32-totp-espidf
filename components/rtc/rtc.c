@@ -16,11 +16,13 @@
 #include "storage.h"
 
 #define WIFI_CONNECT_TIMEOUT_MS 30000
-#define SNTP_WAIT_TIMEOUT_MS 20000
-#define RTC_VALID_EPOCH 1546300800UL // 2019-01-01
-
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
+
+#define SNTP_SYNC_BIT BIT0
+#define SNTP_WAIT_TIMEOUT_MS 20000
+
+#define RTC_VALID_EPOCH 1546300800UL // 2019-01-01
 
 static const char* TAG = "rtc_time";
 
@@ -30,8 +32,10 @@ static bool s_event_loop_inited = false;
 static bool s_netif_inited = false;
 static bool s_time_ready = false;
 
+static EventGroupHandle_t s_sntp_evtgrp = NULL;
+
 // Keep track of when last synchronized, so that syncs can be debounced
-static uint64_t last_sync_ns = 0;
+static uint64_t last_sync_sec = 0;
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                int32_t event_id, void* event_data)
@@ -197,36 +201,59 @@ static void wifi_stop_deinit(bool log)
     }
 }
 
-static bool time_is_valid(void)
+static bool time_is_valid()
 {
-    time_t now = 0;
-    time(&now);
+    time_t now = time(NULL);
     return (unsigned long)now >= RTC_VALID_EPOCH;
+}
+
+static void sntp_time_sync_cb(struct timeval* tv)
+{
+    if (s_sntp_evtgrp)
+    {
+        xEventGroupSetBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
+    }
+}
+
+static bool ensure_sntp_evtgrp()
+{
+    if (!s_sntp_evtgrp)
+        s_sntp_evtgrp = xEventGroupCreate();
+    return s_sntp_evtgrp != NULL;
 }
 
 static bool sntp_sync_once(bool log)
 {
-    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, "pool.ntp.org");
-    esp_sntp_init();
-
-    uint32_t waited = 0;
-    const uint32_t step_ms = 500;
-
-    while (esp_sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET &&
-           waited < SNTP_WAIT_TIMEOUT_MS)
+    if (!ensure_sntp_evtgrp())
     {
-        vTaskDelay(pdMS_TO_TICKS(step_ms));
-        waited += step_ms;
+        if (log)
+            ESP_LOGE(TAG, "Failed to create SNTP event group");
+        return false;
     }
 
-    bool ok = time_is_valid();
+    // Set up SNTP and the callback
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_set_time_sync_notification_cb(&sntp_time_sync_cb);
+
+    xEventGroupClearBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
+    esp_sntp_init();
+
+    // Wait for callback or timeout
+    EventBits_t bits = xEventGroupWaitBits(s_sntp_evtgrp, SNTP_SYNC_BIT,
+                                           pdTRUE,  // clear on exit
+                                           pdFALSE, // wait for any bit
+                                           pdMS_TO_TICKS(SNTP_WAIT_TIMEOUT_MS));
+
+    // One-shot usage: stop SNTP task
+    esp_sntp_stop();
+
+    bool ok = (bits & SNTP_SYNC_BIT) && time_is_valid();
 
     if (ok && log)
     {
-        time_t now = 0;
         struct tm tm = {0};
-        time(&now);
+        time_t now = time(&now);
         localtime_r(&now, &tm);
         ESP_LOGI(TAG, "Time synced: %04d-%02d-%02d %02d:%02d:%02d",
                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
@@ -237,19 +264,11 @@ static bool sntp_sync_once(bool log)
         ESP_LOGW(TAG, "SNTP sync timeout or invalid time");
     }
 
-    esp_sntp_stop();
     return ok;
 }
 
 _Bool rtc_sync(struct storage_WiFiDetails* wifi, _Bool print_errors)
 {
-    // Only resync once a day
-    time_t now = 0;
-    time(&now);
-    if (s_time_ready &&
-        now - last_sync_ns < 86400000000000) // number of nanoseconds in a day
-        return true;
-
     // Not thread-safe by contract
     if (!wifi || wifi->ssid[0] == '\0')
     {
@@ -267,32 +286,27 @@ _Bool rtc_sync(struct storage_WiFiDetails* wifi, _Bool print_errors)
 
     // Mark ready if system time looks sane
     s_time_ready = ok || time_is_valid();
-
     if (s_time_ready)
-    {
-        time(&now);
-        last_sync_ns = (uint64_t)now;
-    }
+        last_sync_sec = (uint64_t)time(NULL);
 
     return s_time_ready;
 }
 
-_Bool rtc_ready(void)
+_Bool rtc_ready()
 {
-    // Thread-safe read; also cross-check system time for robustness
     if (s_time_ready)
         return true;
-    if (time_is_valid())
-    {
-        s_time_ready = true;
-        return true;
-    }
-    return false;
+
+    if (!time_is_valid())
+        return false;
+
+    // Not ready if it has been more than a day since last sync
+    time_t now = time(NULL);
+    if (s_time_ready &&
+        now - last_sync_sec >= 86400000) // number of seconds in a day
+        return false;
+
+    return true;
 }
 
-unsigned long rtc_get(void)
-{
-    time_t now = 0;
-    time(&now);
-    return (unsigned long)now;
-}
+unsigned long rtc_get() { return (unsigned long)time(NULL); }

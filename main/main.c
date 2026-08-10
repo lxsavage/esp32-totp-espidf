@@ -1,5 +1,6 @@
 #include <driver/gpio.h>
-#include <stdint.h>
+#include <stddef.h>
+#include <time.h>
 
 #include <esp_sleep.h>
 #include <esp_system.h>
@@ -199,6 +200,19 @@ void totp_mode(void* _)
     esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
     for (;;)
     {
+        if (!rtc_ready())
+        {
+            serial_msg("TIMESYNC", NULL, wifi.ssid);
+
+            display_set_cursor(0, 1);
+            display_write("ReSync :RTC: ...");
+
+            rtc_sync(&wifi, false);
+
+            display_set_cursor(0, 1);
+            display_write("Expires in   s  ");
+        }
+
         unsigned long now = rtc_get();
         static char code_buf[7];
         if (!totp_generate(decoded_key.key, decoded_key.key_len, now, code_buf))
@@ -220,9 +234,6 @@ void totp_mode(void* _)
         snprintf(exp_buf, 3, "%02lu", 30 - (now % 30));
         display_set_cursor(11, 1);
         display_write(exp_buf);
-
-        if (rtc_sync(&wifi, false))
-            serial_msg("TIMESYNC", NULL, wifi.ssid);
 
         esp_light_sleep_start();
     }
@@ -249,7 +260,10 @@ void app_main(void)
     esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
 
     gpio_set_direction(LOAD_BTN, GPIO_MODE_INPUT);
+
+    // TODO - see if this is interfering with load mode entrance
     gpio_set_pull_mode(LOAD_BTN, GPIO_PULLDOWN_ONLY);
+
     if (gpio_get_level(LOAD_BTN) == 1)
     {
         serial_msg("ENTER", "load", NULL);
@@ -288,11 +302,9 @@ void app_main(void)
     // Delay at least LABEL_READ_TIME, but skip the delay if it took longer than
     // that to do a RTC sync
     int64_t sync_start_ts = esp_timer_get_time() / 1000;
-    bool last_sync_successful = rtc_sync(&wifi, true);
-
-    if (!rtc_ready() && !last_sync_successful)
+    if (!rtc_ready() && !rtc_sync(&wifi, true))
     {
-        // rtc::sync and rtc::ready both returning false indicates connection
+        // rtc_sync and rtc_ready both returning false indicates connection
         // failure
         display_clear();
         display_set_cursor(0, 0);
@@ -307,10 +319,10 @@ void app_main(void)
 
     if (decoded_key.label_len != 0)
     {
-        int64_t sync_end_ts = esp_timer_get_time() / 1000;
-        if (sync_end_ts - sync_start_ts < LABEL_READ_TIME - 100)
-            vTaskDelay(pdMS_TO_TICKS(LABEL_READ_TIME - 100 -
-                                     (sync_end_ts - sync_start_ts)));
+        int64_t now = esp_timer_get_time() / 1000;
+        if (now - sync_start_ts < LABEL_READ_TIME - 100)
+            vTaskDelay(
+                pdMS_TO_TICKS(LABEL_READ_TIME - 100 - (now - sync_start_ts)));
     }
 
     display_clear();
@@ -318,5 +330,5 @@ void app_main(void)
     display_write("Expires in   s");
     vTaskDelay(pdMS_TO_TICKS(100));
 
-    xTaskCreate(totp_mode, "totp_generator", 8192, NULL, 0, NULL);
+    xTaskCreate(totp_mode, "totp_generator", 8192, NULL, 1, NULL);
 }
