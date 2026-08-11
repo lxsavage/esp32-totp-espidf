@@ -4,14 +4,13 @@
 #include <stdint.h>
 
 // Uncomment to enable load mode triggering (WIP)
-// #define LOAD_MODE_ENABLED
+#define LOAD_MODE_ENABLED
 
-// Uncomment to directly bypass load mode and load credentials into storage;
-// requires DEBUG to be set!
-// #define LOAD_TEST
+// Uncomment to disable restart after load mode
+// #define STALL_ON_LOAD_COMPLETE
 
 // Uncomment to allow for debug aborts to happen as well as additional logging
-#define DEBUG
+// #define DEBUG
 
 // Pinout for LCD to display codes/status messages
 #define RS 13

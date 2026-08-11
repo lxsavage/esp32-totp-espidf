@@ -8,6 +8,8 @@ void load_mode()
     // noop
 }
 #else
+#include <string.h>
+
 #include <freertos/FreeRTOS.h>
 
 #include <driver/uart.h>
@@ -80,7 +82,20 @@ size_t uart_getn(uart_port_t port, char* buf, size_t max_len, _Bool binary_mode)
         buf[i++] = (char)ch;
     }
 
-    buf[i] = '\0';
+    if (binary_mode)
+    {
+        // WORKAROUND - in binary mode, explicitly discard the null terminator
+        // instead of just stopping with it remaining in the case that would
+        // happen if a buffer overflow is blocked in non-binary mode
+        uint8_t ch;
+        uart_read_bytes(port, &ch, 1, portMAX_DELAY);
+        printf("%02x\n", ch);
+    }
+    else
+    {
+        buf[i] = '\0';
+    }
+
     return i;
 }
 
@@ -158,6 +173,11 @@ load_mode_network:
     serial_msg("READY", "ssid", NULL);
     {
         size_t ssid_len = uart_getn(UART_PORT, network.ssid, 32, false);
+
+        // WORKAROUND - bug I haven't figured out yet with uart_getn that causes
+        // the next string after a binary mode string is read to be empty
+        if (ssid_len == 0)
+            ssid_len = uart_getn(UART_PORT, network.ssid, 32, false);
         serial_msg("READ", "ssid", network.ssid);
 
         // Skip wifi if no SSID is provided

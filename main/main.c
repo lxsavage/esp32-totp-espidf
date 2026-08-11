@@ -70,14 +70,6 @@ void totp_loop(void* _)
 
 void app_main(void)
 {
-#ifdef LOAD_TEST
-#ifdef DEBUG
-    test_harness();
-    printf("Wrote test credentials; stalling\n");
-    return;
-#endif
-#endif
-
     serial_msg("BEGIN", NULL, NULL);
 
     display_init(RS, ENABLE, D4, D5, D6, D7);
@@ -92,10 +84,13 @@ void app_main(void)
         serial_msg("ENTER", "load", NULL);
         load_mode();
         serial_msg("EXIT", "load", NULL);
+#ifdef STALL_ON_LOAD_COMPLETE
         serial_msg("STALL", "", NULL);
         return;
-        // serial_msg("RESTART", NULL, NULL);
-        // esp_restart();
+#else
+        serial_msg("RESTART", "", NULL);
+        esp_restart();
+#endif
     }
     else
 #endif
@@ -138,7 +133,7 @@ void app_main(void)
         display_set_cursor(0, 0);
         display_write("ERROR");
         display_set_cursor(0, 1);
-        display_write("Reconfigure WiFi");
+        display_write("Bad Config!");
 
         // Unrecoverable: lock until manual reset
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);

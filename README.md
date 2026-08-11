@@ -22,7 +22,8 @@ The setup of this system is as follows:
 1. Wire the [hardware connections](#hardware-connections) as described below to
    the ESP32
 2. Upload the program to the ESP32 and use [`load all`](#load) to write new
-   credentials to memory
+   credentials to memory (note that if you try to load into the main TOTP mode
+   here, it will give you a bad config mode error)
 
 > [!WARNING]
 > The memory layout in this version is different than the ESP-Arduino version,
@@ -78,6 +79,7 @@ Requirements:
 
 - C compiler (`cc` in path)
 - Make (`make` in path)
+- Firmware was compiled with `LOAD_MODE_ENABLED` flag (see `components/common/constants.h`)
 
 Build with `make utilities` in `utilities/`.
 
