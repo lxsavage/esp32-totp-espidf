@@ -1,9 +1,4 @@
-> [!WARNING]
-> This is an in-progress port of [ESP32 TOTP](https://github.com/lxsavage/esp32-totp)
-> to Espressif IDF. Expect broken things until this is completed, and use that
-> version instead if you want a (mostly) error-free experience instead.
-
-# ESP32 TOTP (ESPRESSIF-IDF port)
+# ESP32 TOTP (Espressif-IDF port)
 
 An ESP32-based TOTP storing the private key in flash storage and getting time
 synchronization information from the internet using NTP. This is based on my
