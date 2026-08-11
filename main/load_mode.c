@@ -21,7 +21,7 @@ void load_mode()
 #define UART_PORT UART_NUM_0
 #define UART_BUF_SIZE 256
 
-static void uart_init()
+static void uart_init(uart_port_t port)
 {
     const uart_config_t cfg = {.baud_rate = 115200,
                                .data_bits = UART_DATA_8_BITS,
@@ -32,44 +32,56 @@ static void uart_init()
 
     esp_err_t err;
 
-    err = uart_driver_install(UART_PORT, UART_BUF_SIZE * 2, 0, 0, NULL, 0);
+    err = uart_driver_install(port, UART_BUF_SIZE * 2, 0, 0, NULL, 0);
     ERR_CHECK(err);
 
-    err = uart_param_config(UART_PORT, &cfg);
+    err = uart_param_config(port, &cfg);
     ERR_CHECK(err);
 
-    err = uart_set_pin(UART_PORT, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
+    err = uart_set_pin(port, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
                        UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     ERR_CHECK(err);
+
+    uart_flush_input(port);
 }
 
-static int uart_getn(uart_port_t port, char* buf, size_t max_len)
+size_t uart_getn(uart_port_t port, char* buf, size_t max_len, _Bool binary_mode)
 {
     size_t i = 0;
-    uint8_t chr;
 
-    while (uart_read_bytes(port, &chr, 1, pdMS_TO_TICKS(10)) <= 0)
+    if (binary_mode)
     {
-        vTaskDelay(pdMS_TO_TICKS(10));
+        while (i < max_len)
+        {
+            uint8_t ch;
+            int n = uart_read_bytes(port, &ch, 1, portMAX_DELAY);
+            if (n <= 0)
+                continue;
+            buf[i++] = (char)ch;
+        }
+        return i; // exact number of binary bytes read
     }
-
-    if (chr != '\n' && i < max_len - 1)
-        buf[i++] = (char)chr;
 
     while (i < max_len - 1)
     {
-        int n = uart_read_bytes(port, &chr, 1, portMAX_DELAY);
-        if (n > 0)
+        uint8_t ch;
+        int n = uart_read_bytes(port, &ch, 1, portMAX_DELAY);
+        if (n <= 0)
+            continue;
+        if (ch == '\n' || ch == '\r')
         {
-            if (chr == '\n')
-                break;
-
-            if (chr != '\r') // TODO - check if this check is actually needed
-                buf[i++] = (char)chr;
+            if (ch == '\r')
+            {
+                uint8_t next;
+                uart_read_bytes(port, &next, 1, 0);
+            }
+            break;
         }
+        buf[i++] = (char)ch;
     }
+
     buf[i] = '\0';
-    return (int)i;
+    return i;
 }
 
 void load_mode()
@@ -80,7 +92,7 @@ void load_mode()
     bool save_key = false;
 
     storage_init();
-    uart_init();
+    uart_init(UART_PORT);
 
     display_clear();
     display_set_cursor(0, 0);
@@ -90,7 +102,7 @@ void load_mode()
 
     // LOAD label //
     serial_msg("READY", "label", NULL);
-    code.label_len = uart_getn(UART_PORT, code.label, 256);
+    code.label_len = uart_getn(UART_PORT, code.label, 256, false);
     printf("READ label %s\n", (char*)code.label);
 
     // LOAD key length //
@@ -99,7 +111,7 @@ void load_mode()
     size_t key_len;
     {
         char discard[4];
-        uart_getn(UART_PORT, discard, 4);
+        uart_getn(UART_PORT, discard, 4, false);
 
         printf("READ key_len %s\n", discard);
         int len = atoi(discard);
@@ -127,11 +139,7 @@ void load_mode()
 
     serial_msg("READY", "key", NULL);
     {
-        code.key_len = uart_getn(UART_PORT, (char*)code.key, key_len);
-
-        // Read additional byte to remove/discard newline from buffer
-        char discard = '\0';
-        uart_getn(UART_PORT, &discard, 1);
+        code.key_len = uart_getn(UART_PORT, (char*)code.key, key_len, true);
 
         printf("READ key ");
         for (size_t i = 0; i < code.key_len; i++)
@@ -149,7 +157,7 @@ load_mode_network:
 
     serial_msg("READY", "ssid", NULL);
     {
-        size_t ssid_len = uart_getn(UART_PORT, network.ssid, 32);
+        size_t ssid_len = uart_getn(UART_PORT, network.ssid, 32, false);
         serial_msg("READ", "ssid", network.ssid);
 
         // Skip wifi if no SSID is provided
@@ -173,7 +181,7 @@ load_mode_network:
 
     serial_msg("READY", "ppk", NULL);
     {
-        uart_getn(UART_PORT, network.ppk, 64);
+        uart_getn(UART_PORT, network.ppk, 64, false);
         serial_msg("READ", "ppk", network.ppk);
     }
 

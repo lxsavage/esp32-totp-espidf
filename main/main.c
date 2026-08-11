@@ -92,8 +92,10 @@ void app_main(void)
         serial_msg("ENTER", "load", NULL);
         load_mode();
         serial_msg("EXIT", "load", NULL);
-        serial_msg("RESTART", NULL, NULL);
-        esp_restart();
+        serial_msg("STALL", "", NULL);
+        return;
+        // serial_msg("RESTART", NULL, NULL);
+        // esp_restart();
     }
     else
 #endif
