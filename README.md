@@ -2,8 +2,9 @@
 
 An ESP32-based TOTP storing the private key in flash storage and getting time
 synchronization information from the internet using NTP. This is based on my
-other TOTP setup using Arduino, found here:
-[lxsavage/arduino-totp](https://github.com/lxsavage/arduino-totp).
+[other TOTP firmware](https://github.com/lxsavage/esp32-totp) based on
+ESP32-Arduino, which was based on
+[this Arduino project](https://github.com/lxsavage/arduino-totp).
 
 ## Setup
 
