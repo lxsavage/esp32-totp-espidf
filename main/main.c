@@ -26,7 +26,7 @@ static struct storage_WiFiDetails wifi;
 
 void totp_loop(void* _)
 {
-    esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
+    esp_sleep_enable_timer_wakeup(TOTP_POLL_uS);
     for (;;)
     {
         if (!rtc_ready())
@@ -61,7 +61,7 @@ void totp_loop(void* _)
 
         static char exp_buf[3];
         snprintf(exp_buf, 3, "%02lu", 30 - (now % 30));
-        display_set_cursor(TOTP_DISP_EXP_START, 1);
+        display_set_cursor(TOTP_DISP_EXP_START_COL, 1);
         display_write(exp_buf);
 
         esp_light_sleep_start();
@@ -141,9 +141,9 @@ void app_main(void)
         // Delay at least LABEL_READ_TIME, but skip the delay if it took longer
         // than that to do a RTC sync
         int64_t now = esp_timer_get_time() / 1000;
-        if (now - sync_start_ts < LABEL_READ_TIME - 100)
-            vTaskDelay(
-                pdMS_TO_TICKS(LABEL_READ_TIME - 100 - (now - sync_start_ts)));
+        if (now - sync_start_ts < LABEL_READ_TIME_MS - 100)
+            vTaskDelay(pdMS_TO_TICKS(LABEL_READ_TIME_MS - 100 -
+                                     (now - sync_start_ts)));
     }
 
     // Write the TOTP display mask and trigger the codegen loop

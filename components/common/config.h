@@ -4,9 +4,7 @@
 // Uncomment to enable load mode triggering (WIP)
 #define LOAD_MODE_ENABLED
 
-// Uncomment to enable command notes being sent over UART; this will be enabled
-// regardless if load mode is enabled (LOAD_MODE_ENABLED), since a load utility
-// could depend on these to know what to send.
+// Uncomment to enable command notes being sent over UART
 #define SERIAL_NOTES_ENABLED
 
 // Uncomment to disable restart after load mode

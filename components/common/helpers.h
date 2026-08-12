@@ -3,18 +3,21 @@
 
 #include "constants.h"
 
-#if defined(SERIAL_NOTES_ENABLED) || defined(LOAD_MODE_ENABLED)
+#ifdef SERIAL_NOTES_ENABLED
 void h_serial_msg(const char* command, const char* data, const char* rem);
+// Writes a properly-formatted serial message for use on UART communication
 #define SERIAL_MSG(x, y, z) h_serial_msg(x, y, z)
-#define SERIAL_NOTES_AVAILABLE
 #else
+// Writes a properly-formatted serial message for use on UART communication
 #define SERIAL_MSG(x, y, z)
 #endif
 
 #ifdef DEBUG
+// If DEBUG is enabled, surround this call with an error assert
 #define ERR_CHECK(x) ESP_ERROR_CHECK(x)
 #else
-#define ERR_CHECK(x) x
+// If DEBUG is enabled, surround this call with an error assert
+#define ERR_CHECK(x) (void)(x)
 #endif
 
 #endif

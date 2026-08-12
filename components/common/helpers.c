@@ -4,7 +4,7 @@
 
 #include "constants.h"
 
-#ifdef SERIAL_NOTES_AVAILABLE
+#ifdef SERIAL_NOTES_ENABLED
 void h_serial_msg(const char* command, const char* data, const char* rem)
 {
     printf("%s", command);

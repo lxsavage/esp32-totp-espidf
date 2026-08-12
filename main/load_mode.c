@@ -110,12 +110,12 @@ void load_mode()
     // LOAD key length //
     SERIAL_MSG("READY", "key_len", NULL);
     size_t key_len;
-    char discard[4];
-    uart_scan(UART_PORT, discard, 4, false);
+    char keylen_buf[4];
+    uart_scan(UART_PORT, keylen_buf, 4, false);
 
-    int len = atoi(discard);
+    int len = atoi(keylen_buf);
     key_len = (size_t)len;
-    SERIAL_MSG("READ", "key_len", discard);
+    SERIAL_MSG("READ", "key_len", keylen_buf);
 
     if (len < 0)
     {

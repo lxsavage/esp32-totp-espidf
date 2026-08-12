@@ -10,7 +10,7 @@
 #define TIME_SYNC_INTERVAL_SEC 86400 // 1 day
 
 // Minimum amount of time to display label before code (if applicable)
-#define LABEL_READ_TIME 1500 // 1.5 seconds
+#define LABEL_READ_TIME_MS 1500
 
 // Serial communication
 #define UART_BAUD_RATE 115200
@@ -19,10 +19,9 @@
 
 // Other constants
 #define TOTP_KEY_MAX 128
-#define TOTP_POLL_mS 1000000 // 1 second in microseconds
+#define TOTP_POLL_uS 1000000
 
-#define TOTP_DISP_EXP_START 11
-// -> (2 digits starting at col TOTP_DISP_EXP_START)
+#define TOTP_DISP_EXP_START_COL 11
 // Number mask for ref  -> "           XX   "
 #define TOTP_DISP_UNDERLAY "Expires in   s  "
 
