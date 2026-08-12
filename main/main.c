@@ -31,7 +31,7 @@ void totp_loop(void* _)
     {
         if (!rtc_ready())
         {
-            serial_msg("TIMESYNC", NULL, wifi.ssid);
+            SERIAL_MSG("TIMESYNC", NULL, wifi.ssid);
 
             display_set_cursor(0, 1);
             display_write("ReSync :RTC: ...");
@@ -39,14 +39,14 @@ void totp_loop(void* _)
             rtc_sync(&wifi, false);
 
             display_set_cursor(0, 1);
-            display_write("Expires in   s  ");
+            display_write(TOTP_DISP_UNDERLAY);
         }
 
         unsigned long now = rtc_get();
         static char code_buf[7];
         if (!totp_generate(decoded_key.key, decoded_key.key_len, now, code_buf))
         {
-            serial_msg("FAIL", "totp_gen", NULL);
+            SERIAL_MSG("FAIL", "totp_gen", NULL);
             esp_light_sleep_start();
             return;
         }
@@ -61,7 +61,7 @@ void totp_loop(void* _)
 
         static char exp_buf[3];
         snprintf(exp_buf, 3, "%02lu", 30 - (now % 30));
-        display_set_cursor(11, 1);
+        display_set_cursor(TOTP_DISP_EXP_START, 1);
         display_write(exp_buf);
 
         esp_light_sleep_start();
@@ -70,45 +70,40 @@ void totp_loop(void* _)
 
 void app_main(void)
 {
-    serial_msg("BEGIN", NULL, NULL);
+    SERIAL_MSG("BEGIN", NULL, NULL);
 
     display_init(RS, ENABLE, D4, D5, D6, D7);
     display_begin(16, 2);
-
-    esp_sleep_enable_timer_wakeup(TOTP_POLL_mS);
 
 #ifdef LOAD_MODE_ENABLED
     gpio_set_direction(LOAD_BTN, GPIO_MODE_INPUT);
     if (gpio_get_level(LOAD_BTN) == 1)
     {
-        serial_msg("ENTER", "load", NULL);
+        SERIAL_MSG("ENTER", "load", NULL);
         load_mode();
-        serial_msg("EXIT", "load", NULL);
+        SERIAL_MSG("EXIT", "load", NULL);
 #ifdef STALL_ON_LOAD_COMPLETE
-        serial_msg("STALL", "", NULL);
+        serial_msg("STALL", NULL NULL);
         return;
 #else
-        serial_msg("RESTART", "", NULL);
+        SERIAL_MSG("RESTART", NULL, NULL);
         esp_restart();
 #endif
     }
     else
 #endif
     {
-        serial_msg("ENTER", "normal", NULL);
+        SERIAL_MSG("ENTER", "normal", NULL);
     }
 
+    totp_init();
     storage_init();
+
     storage_load_wifi(&wifi);
     storage_load_privatekey(&decoded_key);
 
-    serial_msg("TIMESYNC", NULL, wifi.ssid);
-
-    totp_init();
-
     display_clear();
     display_set_cursor(0, 0);
-
     if (decoded_key.label_len == 0)
     {
         display_write("Waiting for");
@@ -122,10 +117,10 @@ void app_main(void)
         display_write(decoded_key.label);
     }
 
-    // Delay at least LABEL_READ_TIME, but skip the delay if it took longer
-    // than that to do a RTC sync
+    SERIAL_MSG("TIMESYNC", NULL, wifi.ssid);
     int64_t sync_start_ts = esp_timer_get_time() / 1000;
-    if (!rtc_ready() && !rtc_sync(&wifi, true))
+    _Bool sync_evt_occurred = rtc_sync(&wifi, true);
+    if (!rtc_ready() && !sync_evt_occurred)
     {
         // rtc_sync and rtc_ready both returning false indicates connection
         // failure
@@ -138,20 +133,24 @@ void app_main(void)
         // Unrecoverable: lock until manual reset
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
         esp_deep_sleep_start();
+        return;
     }
 
     if (decoded_key.label_len != 0)
     {
+        // Delay at least LABEL_READ_TIME, but skip the delay if it took longer
+        // than that to do a RTC sync
         int64_t now = esp_timer_get_time() / 1000;
         if (now - sync_start_ts < LABEL_READ_TIME - 100)
             vTaskDelay(
                 pdMS_TO_TICKS(LABEL_READ_TIME - 100 - (now - sync_start_ts)));
     }
 
+    // Write the TOTP display mask and trigger the codegen loop
+
     display_clear();
     display_set_cursor(0, 1);
-    display_write("Expires in   s");
+    display_write(TOTP_DISP_UNDERLAY);
     vTaskDelay(pdMS_TO_TICKS(100));
-
     xTaskCreate(totp_loop, "codegen_task", 8192, NULL, 1, NULL);
 }

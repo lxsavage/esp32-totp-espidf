@@ -3,25 +3,7 @@
 
 #include <stdint.h>
 
-// Uncomment to enable load mode triggering (WIP)
-#define LOAD_MODE_ENABLED
-
-// Uncomment to disable restart after load mode
-// #define STALL_ON_LOAD_COMPLETE
-
-// Uncomment to allow for debug aborts to happen as well as additional logging
-// #define DEBUG
-
-// Pinout for LCD to display codes/status messages
-#define RS 13
-#define ENABLE 14
-#define D4 26
-#define D5 25
-#define D6 18
-#define D7 19
-
-// Pinout for pushbutton to enter load mode
-#define LOAD_BTN 21
+#include "config.h"
 
 // Period for re-syncing time with NTP server (seconds); uses deep sleep between
 // resynchronization events, so this is not an exact timing
@@ -30,16 +12,18 @@
 // Minimum amount of time to display label before code (if applicable)
 #define LABEL_READ_TIME 1500 // 1.5 seconds
 
+// Serial communication
+#define UART_BAUD_RATE 115200
+#define UART_PORT UART_NUM_0
+#define UART_BUF_SIZE 256
+
 // Other constants
-#define BAUD_RATE 115200
 #define TOTP_KEY_MAX 128
 #define TOTP_POLL_mS 1000000 // 1 second in microseconds
 
-// Debug helper
-#ifdef DEBUG
-#define ERR_CHECK(x) ESP_ERROR_CHECK(x)
-#else
-#define ERR_CHECK(x)
-#endif
+#define TOTP_DISP_EXP_START 11
+// -> (2 digits starting at col TOTP_DISP_EXP_START)
+// Number mask for ref  -> "           XX   "
+#define TOTP_DISP_UNDERLAY "Expires in   s  "
 
 #endif

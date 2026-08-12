@@ -64,6 +64,9 @@ side 1 -> GPIO21
 side 2 -> 10kΩ resistor -> 3.3V
 ```
 
+> [!NOTE]
+> These can be reconfigured under `components/common/config.h`
+
 ### Helper Utilities
 
 > [!WARNING]
@@ -75,7 +78,7 @@ Requirements:
 
 - C compiler (`cc` in path)
 - Make (`make` in path)
-- Firmware was compiled with `LOAD_MODE_ENABLED` flag (see `components/common/constants.h`)
+- Firmware was compiled with `LOAD_MODE_ENABLED` set (see `components/common/config.h`)
 
 Build with `make utilities` in `utilities/`.
 
@@ -122,4 +125,5 @@ reuse the ESP32 in other projects without worrying about leaking this
 information. To invoke this utility, just use `./utilities/load <devicename>`.~~
 
 **Unlike the ESP-Arduino version, this doesn't have a clean utility. Using
-`idf.py erase-flash` achieves the same function.**
+`idf.py erase-flash` achieves the same function. The only difference here is
+that the firmware is also wiped when using the `erase-flash` command.**

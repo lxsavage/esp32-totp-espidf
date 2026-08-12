@@ -2,6 +2,8 @@
 
 #include <nvs_flash.h>
 
+#include "helpers.h"
+
 // This generally shouldn't change, so it's being left here instead of
 // constants.h
 #define STORAGE_NVS_PART_NAME "nvs"
@@ -18,14 +20,8 @@ _Bool storage_init()
     if (err == ESP_ERR_NVS_NO_FREE_PAGES)
     {
         // Reinit flash if full
-        err = nvs_flash_erase();
-#ifdef DEBUG
-        ESP_ERROR_CHECK(err);
-#endif
-        err = nvs_flash_init();
-#ifdef DEBUG
-        ESP_ERROR_CHECK(err);
-#endif
+        ERR_CHECK(nvs_flash_erase());
+        ERR_CHECK(nvs_flash_init());
     }
     else if (err != ESP_OK)
     {
