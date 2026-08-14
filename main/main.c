@@ -69,7 +69,7 @@ void totp_loop(void* _ __attribute__((__unused__)))
     }
 }
 
-void app_main(void)
+void app_main()
 {
     SERIAL_MSG("BEGIN", NULL, NULL);
 
