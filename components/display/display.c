@@ -4,8 +4,6 @@
 
 #include <freertos/task.h>
 
-#include "constants.h"
-
 #include "hd44780.h"
 
 static lcd_bus_hd44780_t* bus = NULL;
@@ -13,7 +11,7 @@ static hd44780_t* lcd = NULL;
 
 _Bool display_init(int rs, int enable, int d4, int d5, int d6, int d7)
 {
-    bus = lcd_bus_gpio4_create(RS, ENABLE, D4, D5, D6, D7);
+    bus = lcd_bus_gpio4_create(rs, enable, d4, d5, d6, d7);
     return bus != NULL;
 }
 

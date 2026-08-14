@@ -11,6 +11,7 @@
 #include <freertos/projdefs.h>
 #include <freertos/task.h>
 
+#include "config.h"
 #include "constants.h"
 
 #include "display.h"
@@ -24,7 +25,7 @@
 static struct storage_OTPCode decoded_key;
 static struct storage_WiFiDetails wifi;
 
-void totp_loop(void* _)
+void totp_loop(void* _ __unused)
 {
     esp_sleep_enable_timer_wakeup(TOTP_POLL_uS);
     for (;;)
@@ -72,11 +73,11 @@ void app_main(void)
 {
     SERIAL_MSG("BEGIN", NULL, NULL);
 
-    display_init(RS, ENABLE, D4, D5, D6, D7);
-    display_begin(16, 2);
+    (void)display_init(RS, ENABLE, D4, D5, D6, D7);
+    (void)display_begin(16, 2);
 
 #ifdef LOAD_MODE_ENABLED
-    gpio_set_direction(LOAD_BTN, GPIO_MODE_INPUT);
+    ERR_CHECK(gpio_set_direction(LOAD_BTN, GPIO_MODE_INPUT));
     if (gpio_get_level(LOAD_BTN) == 1)
     {
         SERIAL_MSG("ENTER", "load", NULL);
@@ -96,11 +97,11 @@ void app_main(void)
         SERIAL_MSG("ENTER", "normal", NULL);
     }
 
-    totp_init();
-    storage_init();
+    (void)totp_init();
+    (void)storage_init();
 
-    storage_load_wifi(&wifi);
-    storage_load_privatekey(&decoded_key);
+    (void)storage_load_wifi(&wifi);
+    (void)storage_load_privatekey(&decoded_key);
 
     display_clear();
     display_set_cursor(0, 0);
@@ -131,7 +132,7 @@ void app_main(void)
         display_write("Bad Config!");
 
         // Unrecoverable: lock until manual reset
-        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+        (void)esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
         esp_deep_sleep_start();
         return;
     }
@@ -152,5 +153,5 @@ void app_main(void)
     display_set_cursor(0, 1);
     display_write(TOTP_DISP_UNDERLAY);
     vTaskDelay(pdMS_TO_TICKS(100));
-    xTaskCreate(totp_loop, "codegen_task", 8192, NULL, 1, NULL);
+    (void)xTaskCreate(totp_loop, "codegen_task", 8192, NULL, 1, NULL);
 }

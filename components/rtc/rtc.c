@@ -13,6 +13,7 @@
 
 #include "freertos/event_groups.h"
 
+#include "helpers.h"
 #include "storage.h"
 
 #define WIFI_CONNECT_TIMEOUT_MS 30000
@@ -42,16 +43,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
-        esp_wifi_connect();
+        ERR_CHECK(esp_wifi_connect());
     }
     else if (event_base == WIFI_EVENT &&
              event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        xEventGroupSetBits(s_wifi_evtgrp, WIFI_FAIL_BIT);
+        (void)xEventGroupSetBits(s_wifi_evtgrp, WIFI_FAIL_BIT);
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
-        xEventGroupSetBits(s_wifi_evtgrp, WIFI_CONNECTED_BIT);
+        (void)xEventGroupSetBits(s_wifi_evtgrp, WIFI_CONNECTED_BIT);
     }
 }
 
@@ -65,7 +66,7 @@ static void copy_ensure(char* to, size_t to_size, const char* from)
         return;
     }
     size_t n = strnlen(from, to_size - 1);
-    memcpy(to, from, n);
+    (void)memcpy(to, from, n);
     to[n] = '\0';
 }
 
@@ -99,7 +100,7 @@ static bool ensure_bases(bool log)
                          esp_err_to_name(err));
             return false;
         }
-        esp_netif_create_default_wifi_sta();
+        (void)esp_netif_create_default_wifi_sta();
         s_netif_inited = true;
     }
 
@@ -165,7 +166,8 @@ static bool wifi_start_connect(const struct storage_WiFiDetails* wifi, bool log)
         return false;
     }
 
-    xEventGroupClearBits(s_wifi_evtgrp, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
+    (void)xEventGroupClearBits(s_wifi_evtgrp,
+                               WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
 
     EventBits_t bits = xEventGroupWaitBits(
         s_wifi_evtgrp, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdTRUE, pdFALSE,
@@ -210,9 +212,7 @@ static bool time_is_valid()
 static void sntp_time_sync_cb(struct timeval* tv)
 {
     if (s_sntp_evtgrp)
-    {
-        xEventGroupSetBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
-    }
+        (void)xEventGroupSetBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
 }
 
 static bool ensure_sntp_evtgrp()
@@ -236,7 +236,7 @@ static bool sntp_sync_once(bool log)
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_set_time_sync_notification_cb(&sntp_time_sync_cb);
 
-    xEventGroupClearBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
+    (void)xEventGroupClearBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
     esp_sntp_init();
 
     // Wait for callback or timeout

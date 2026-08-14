@@ -16,6 +16,7 @@
 #include "helpers.h"
 #include "storage.h"
 
+// Initialize UART serial communication for input
 static void uart_init(uart_port_t port)
 {
     const uart_config_t cfg = {.baud_rate = UART_BAUD_RATE,
@@ -30,9 +31,13 @@ static void uart_init(uart_port_t port)
     ERR_CHECK(uart_set_pin(port, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
                            UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-    uart_flush_input(port);
+    ERR_CHECK(uart_flush_input(port));
 }
 
+// Read a line from the specified UART serial port up until (but not including)
+// '\n'. Use binary_mode to just keep reading until max_len characters are read.
+//
+// WARNING: binary_mode does not null-terminate the buffer!
 static size_t uart_scan(uart_port_t port, char* buf, size_t max_len,
                         _Bool binary_mode)
 {
@@ -61,7 +66,7 @@ static size_t uart_scan(uart_port_t port, char* buf, size_t max_len,
             if (ch == '\r')
             {
                 uint8_t next;
-                uart_read_bytes(port, &next, 1, 0);
+                (void)uart_read_bytes(port, &next, 1, 0);
             }
             break;
         }
@@ -74,7 +79,7 @@ static size_t uart_scan(uart_port_t port, char* buf, size_t max_len,
         // instead of just stopping with it remaining in the case that would
         // happen if a buffer overflow is blocked in non-binary mode
         uint8_t ch;
-        uart_read_bytes(port, &ch, 1, portMAX_DELAY);
+        (void)uart_read_bytes(port, &ch, 1, portMAX_DELAY);
         printf("%02x\n", ch);
     }
     else
@@ -93,7 +98,7 @@ void load_mode()
 
     bool save_key = false;
 
-    storage_init();
+    (void)storage_init();
     uart_init(UART_PORT);
 
     display_clear();
@@ -111,7 +116,7 @@ void load_mode()
     SERIAL_MSG("READY", "key_len", NULL);
     size_t key_len;
     char keylen_buf[4];
-    uart_scan(UART_PORT, keylen_buf, 4, false);
+    (void)uart_scan(UART_PORT, keylen_buf, 4, false);
 
     int len = atoi(keylen_buf);
     key_len = (size_t)len;
@@ -147,7 +152,7 @@ void load_mode()
     printf("\n");
 
     save_key = true;
-    storage_write_secret(&code);
+    (void)storage_write_secret(&code);
 
 load_mode_network:
     // LOAD ssid //
@@ -180,7 +185,7 @@ load_mode_network:
     // LOAD ppk //
 
     SERIAL_MSG("READY", "ppk", NULL);
-    uart_scan(UART_PORT, network.ppk, 64, false);
+    (void)uart_scan(UART_PORT, network.ppk, 64, false);
     SERIAL_MSG("READ", "ppk", network.ppk);
 
     // SAVE //
@@ -188,7 +193,7 @@ load_mode_network:
     if (save_key)
         SERIAL_MSG("SAVE", "key", NULL);
 
-    storage_write_wifi(&network);
+    (void)storage_write_wifi(&network);
     SERIAL_MSG("SAVE", "ssid", NULL);
     SERIAL_MSG("SAVE", "ppk", NULL);
 

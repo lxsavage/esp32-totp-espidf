@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "config.h"
-
 // Period for re-syncing time with NTP server (seconds); uses deep sleep between
 // resynchronization events, so this is not an exact timing
 #define TIME_SYNC_INTERVAL_SEC 86400 // 1 day
@@ -22,7 +20,7 @@
 #define TOTP_POLL_uS 1000000
 
 #define TOTP_DISP_EXP_START_COL 11
-// Number mask for ref  -> "           XX   "
 #define TOTP_DISP_UNDERLAY "Expires in   s  "
+// Number mask for ref  -> "           XX   "
 
 #endif

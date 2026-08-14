@@ -45,7 +45,7 @@ static int hmac_sha1_md(const uint8_t* key, size_t key_len, const uint8_t* msg,
     }
     else
     {
-        memcpy(k0, key, key_len);
+        (void)memcpy(k0, key, key_len);
     }
 
     for (size_t i = 0; i < block; ++i)
@@ -95,7 +95,7 @@ void totp_init()
         return;
 
     mbedtls_md_init(&ctx);
-    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), 1);
+    (void)mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), 1);
     initialized = true;
 }
 
@@ -123,6 +123,6 @@ bool totp_generate(const uint8_t* key, size_t key_len, uint64_t unix_time,
                    ((hash[offset + 2] & 0xFF) << 8) | (hash[offset + 3] & 0xFF);
     bin %= 1000000U;
 
-    snprintf(out, 7, "%06u", (unsigned)bin);
+    (void)snprintf(out, 7, "%06u", (unsigned)bin);
     return true;
 }
