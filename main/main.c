@@ -25,7 +25,7 @@
 static struct storage_OTPCode decoded_key;
 static struct storage_WiFiDetails wifi;
 
-void totp_loop(void* _ __unused)
+void totp_loop(void* _ __attribute__((__unused__)))
 {
     esp_sleep_enable_timer_wakeup(TOTP_POLL_uS);
     for (;;)

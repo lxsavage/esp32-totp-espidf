@@ -1,5 +1,6 @@
 #include "load_mode.h"
 
+#include "config.h"
 #include "constants.h"
 
 #ifdef LOAD_MODE_ENABLED

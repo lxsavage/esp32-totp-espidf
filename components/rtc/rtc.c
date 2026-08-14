@@ -1,5 +1,6 @@
 #include "rtc.h"
 
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 
@@ -28,10 +29,10 @@
 static const char* TAG = "rtc_time";
 
 static EventGroupHandle_t s_wifi_evtgrp;
-static bool s_wifi_driver_inited = false;
-static bool s_event_loop_inited = false;
-static bool s_netif_inited = false;
-static bool s_time_ready = false;
+static _Bool s_wifi_driver_inited = false;
+static _Bool s_event_loop_inited = false;
+static _Bool s_netif_inited = false;
+static _Bool s_time_ready = false;
 
 static EventGroupHandle_t s_sntp_evtgrp = NULL;
 
@@ -70,13 +71,11 @@ static void copy_ensure(char* to, size_t to_size, const char* from)
     to[n] = '\0';
 }
 
-static bool ensure_bases(bool log)
+static _Bool ensure_bases(_Bool log)
 {
-    esp_err_t err;
-
     if (!s_event_loop_inited)
     {
-        err = esp_event_loop_create_default();
+        esp_err_t err = esp_event_loop_create_default();
         if (err == ESP_OK || err == ESP_ERR_INVALID_STATE)
         {
             s_event_loop_inited = true;
@@ -92,7 +91,7 @@ static bool ensure_bases(bool log)
 
     if (!s_netif_inited)
     {
-        err = esp_netif_init();
+        esp_err_t err = esp_netif_init();
         if (err != ESP_OK && err != ESP_ERR_INVALID_STATE)
         {
             if (log)
@@ -109,7 +108,8 @@ static bool ensure_bases(bool log)
     return true;
 }
 
-static bool wifi_start_connect(const struct storage_WiFiDetails* wifi, bool log)
+static _Bool wifi_start_connect(const struct storage_WiFiDetails* wifi,
+                                _Bool log)
 {
     if (!ensure_bases(log))
         return false;
@@ -185,28 +185,26 @@ static bool wifi_start_connect(const struct storage_WiFiDetails* wifi, bool log)
     return false;
 }
 
-static void wifi_stop_deinit(bool log)
+static void wifi_stop_deinit(_Bool log)
 {
-    if (s_wifi_driver_inited)
-    {
-        esp_err_t err = esp_wifi_stop();
-        if (err != ESP_OK && log)
-        {
-            ESP_LOGW(TAG, "wifi stop: %s", esp_err_to_name(err));
-        }
-        err = esp_wifi_deinit();
-        if (err != ESP_OK && log)
-        {
-            ESP_LOGW(TAG, "wifi deinit: %s", esp_err_to_name(err));
-        }
-        s_wifi_driver_inited = false;
-    }
+    if (!s_wifi_driver_inited)
+        return;
+
+    esp_err_t err = esp_wifi_stop();
+    if (err != ESP_OK && log)
+        ESP_LOGW(TAG, "wifi stop: %s", esp_err_to_name(err));
+
+    err = esp_wifi_deinit();
+    if (err != ESP_OK && log)
+        ESP_LOGW(TAG, "wifi deinit: %s", esp_err_to_name(err));
+
+    s_wifi_driver_inited = false;
 }
 
-static bool time_is_valid()
+static _Bool time_is_valid()
 {
     time_t now = time(NULL);
-    return (unsigned long)now >= RTC_VALID_EPOCH;
+    return now >= RTC_VALID_EPOCH;
 }
 
 static void sntp_time_sync_cb(struct timeval* tv)
@@ -215,14 +213,14 @@ static void sntp_time_sync_cb(struct timeval* tv)
         (void)xEventGroupSetBits(s_sntp_evtgrp, SNTP_SYNC_BIT);
 }
 
-static bool ensure_sntp_evtgrp()
+static _Bool ensure_sntp_evtgrp()
 {
     if (!s_sntp_evtgrp)
         s_sntp_evtgrp = xEventGroupCreate();
     return s_sntp_evtgrp != NULL;
 }
 
-static bool sntp_sync_once(bool log)
+static _Bool sntp_sync_once(_Bool log)
 {
     if (!ensure_sntp_evtgrp())
     {
@@ -248,7 +246,7 @@ static bool sntp_sync_once(bool log)
     // One-shot usage: stop SNTP task
     esp_sntp_stop();
 
-    bool ok = (bits & SNTP_SYNC_BIT) && time_is_valid();
+    _Bool ok = (bits & SNTP_SYNC_BIT) && time_is_valid();
 
     if (ok && log)
     {
@@ -277,7 +275,7 @@ _Bool rtc_sync(struct storage_WiFiDetails* wifi, _Bool print_errors)
         return false;
     }
 
-    bool ok = false;
+    _Bool ok = false;
 
     if (wifi_start_connect(wifi, print_errors))
         ok = sntp_sync_once(print_errors);

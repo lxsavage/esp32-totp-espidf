@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "config.h"
 #include "constants.h"
 
 #ifdef SERIAL_NOTES_ENABLED
