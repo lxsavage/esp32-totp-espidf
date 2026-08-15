@@ -55,8 +55,10 @@ void totp_loop(void* _ __attribute__((__unused__)))
         display_set_cursor(0, 0);
         for (int i = 0; i < 6; i++)
         {
+            // Draw the gap between the first and last 3 digits
             if (i == 3)
                 display_write_byte(' ');
+
             display_write_byte(code_buf[i]);
         }
 
@@ -65,7 +67,7 @@ void totp_loop(void* _ __attribute__((__unused__)))
         display_set_cursor(TOTP_DISP_EXP_START_COL, 1);
         display_write(exp_buf);
 
-        esp_light_sleep_start();
+        ERR_CHECK(esp_light_sleep_start());
     }
 }
 
@@ -91,11 +93,9 @@ void app_main()
         esp_restart();
 #endif
     }
-    else
 #endif
-    {
-        SERIAL_MSG("ENTER", "normal", NULL);
-    }
+
+    SERIAL_MSG("ENTER", "normal", NULL);
 
     (void)totp_init();
     (void)storage_init();
@@ -139,8 +139,8 @@ void app_main()
 
     if (decoded_key.label_len != 0)
     {
-        // Delay at least LABEL_READ_TIME, but skip the delay if it took longer
-        // than that to do a RTC sync
+        // Delay at least LABEL_READ_TIME, but skip the delay if it took
+        // longer than that to do a RTC sync
         int64_t now = esp_timer_get_time() / 1000;
         if (now - sync_start_ts < LABEL_READ_TIME_MS - 100)
             vTaskDelay(pdMS_TO_TICKS(LABEL_READ_TIME_MS - 100 -
