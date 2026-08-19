@@ -26,6 +26,12 @@ The setup of this system is as follows:
 > so you will have to re-flash the key and WiFi credentials to memory with
 > [`load all`](#load).
 
+> [!NOTE]
+> A dev container is included here as part of Espressif-IDF project setup,
+> but untested due to this being developed on MacOS, for which the container
+> does not support flashing. It should work as expected there, but is currently
+> untested/used.
+
 ### Hardware Connections
 
 > [!NOTE]

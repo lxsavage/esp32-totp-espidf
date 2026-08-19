@@ -1,4 +1,4 @@
-CC       = clang # can also use clang, gcc, etc.
+CC       = cc # can also use clang, gcc, etc.
 CC_FLAGS = -I./utilities
 
 .PHONY: all
