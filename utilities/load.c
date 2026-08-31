@@ -141,6 +141,16 @@ _Bool handle_wifi(int serial_fd, const char* ssid, const char* ppk,
     return true;
 }
 
+// Handles cleaning up space placeholder '\b' that is used in parse utility for
+// labels
+void cleanup_parseplaceholders(char* label_raw)
+{
+    for (size_t i = 0; i < strlen(label_raw); i++)
+    {
+        if (label_raw[i] == '\b')
+            label_raw[i] = ' ';
+    }
+}
 int main(int argc, const char* argv[])
 {
     if (argc < 4)
@@ -192,6 +202,7 @@ int main(int argc, const char* argv[])
         }
 
         const char* secret = argv[3];
+        cleanup_parseplaceholders(secret);
         size_t secret_len = strlen(secret);
 
         if (secret_len >= 256)
