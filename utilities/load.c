@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -192,6 +193,11 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "no label found, just sending raw secret\n");
 #endif
 
+    // This is used for storing a parsed secret from the code-only section; it's
+    // declared here to avoid compiler errors from the free call further down,
+    // which also will only be reached if the code-only branch runs with an
+    // error
+    const char* secret = NULL;
     if (strcmp(argv[2], "code") == 0)
     {
         if (argc < 3)
@@ -201,8 +207,13 @@ int main(int argc, const char* argv[])
             goto exit_bad_close;
         }
 
-        const char* secret = argv[3];
-        cleanup_parseplaceholders(secret);
+        // Ensure that the secret cannot be changed after parsing
+        size_t arg3_len = strlen(argv[3]);
+        char* secret_raw = malloc(arg3_len + 1);
+        snprintf(secret_raw, arg3_len + 1, "%s", argv[3]);
+        cleanup_parseplaceholders(secret_raw);
+        secret = (const char*)secret_raw;
+
         size_t secret_len = strlen(secret);
 
         if (secret_len >= 256)
@@ -211,13 +222,14 @@ int main(int argc, const char* argv[])
                 stderr,
                 "secret is too long: max chars is 256, secret is %lu chars.\n",
                 secret_len);
-            goto exit_bad_close;
+            goto exit_bad_close_withcode;
         }
         if (!handle_secret(fd, secret, label, secret_len, label_len))
         {
             fprintf(stderr, "failed to load code");
-            goto exit_bad_close;
+            goto exit_bad_close_withcode;
         }
+        free((void*)secret);
 
         // Skip the wifi loading
 #ifdef DEBUG_LOGS
@@ -299,6 +311,10 @@ int main(int argc, const char* argv[])
     printf("Successfully wrote data to %s\n", argv[1]);
     return 0;
 
+exit_bad_close_withcode:
+    // Free the secret allocation made specifically for the escape case from
+    // parse.c
+    free((void*)secret);
 exit_bad_close:
     close(fd);
 exit_bad:

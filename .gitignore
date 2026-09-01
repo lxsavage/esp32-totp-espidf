@@ -82,4 +82,4 @@ utilities/*
 !utilities/*.c
 !utilities/makefile
 !utilities/helpers/
-!utilities/*.sh
+!utilities/scripts/

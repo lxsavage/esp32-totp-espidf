@@ -145,7 +145,15 @@ _Bool parse_totp_uri(char* uri, size_t uri_len, char* out_secret,
 #endif
     size_t secret_len = 0;
     while (secret_len < *out_secret_len && read_i < uri_len)
+    {
+        if (uri[read_i] == '&')
+        {
+            out_secret[secret_len++] = '\0';
+            break;
+        }
+
         out_secret[secret_len++] = uri[read_i++];
+    }
 
     return true;
 }
