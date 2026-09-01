@@ -2,17 +2,19 @@ CC       = cc # can also use clang, gcc, etc.
 CC_FLAGS = -I./utilities
 
 .PHONY: all
-all: load
+all: utilities
 
 .PHONY: clean
 clean:
-	rm -f load parse
+	rm -rf dist/
 
 .PHONY: utilities
-utilities: load parse
+utilities: dist/load dist/parse
 
-load: load.c helpers/base32.c helpers/serial.c
+dist/load: load.c helpers/base32.c helpers/serial.c
+	mkdir -p dist/
 	$(CC) $(CC_FLAGS) -o $@ $^
 
-parse: parse.c
+dist/parse: parse.c
+	mkdir -p dist/
 	$(CC) $(CC_FLAGS) -o $@ $^

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 #
+# > WARNING: UNTESTED!
+#
 # upload-qr.sh
 # A script for utilizing qrtool and (for macOS) screenshots to find and upload a new TOTP to the specified device.
 # Usage: ./upload_qr.sh <device> <path to QR code PNG>
@@ -8,8 +10,8 @@
 
 cd "$(dirname "$0")"/..
 
-make parse
-make load
+make dist/parse
+make dist/load
 
 # If arg 2 is not defined and on macOS, use the most recent screenshot in the default location
 LOC=$2
@@ -31,4 +33,4 @@ if [[ -z "$LOC" ]]; then
 fi
 
 echo $(qrtool decode "$LOC" | ./parse)
-# ./load $1 $(qrtool decode "$LOC" | ./parse)
+# ./dist/load $1 $(qrtool decode "$LOC" | ./parse)
